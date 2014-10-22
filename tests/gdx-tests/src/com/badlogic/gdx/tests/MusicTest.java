@@ -23,13 +23,23 @@ import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.BitmapFont;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.graphics.g2d.TextureRegion;
+import com.badlogic.gdx.scenes.scene2d.Actor;
+import com.badlogic.gdx.scenes.scene2d.Stage;
+import com.badlogic.gdx.scenes.scene2d.ui.Skin;
+import com.badlogic.gdx.scenes.scene2d.ui.Slider;
+import com.badlogic.gdx.scenes.scene2d.utils.ChangeListener;
 import com.badlogic.gdx.tests.utils.GdxTest;
 
 public class MusicTest extends GdxTest {
+	
 	Music music;
+	float songDuration = 183;
+	
 	TextureRegion buttons;
 	SpriteBatch batch;
 	BitmapFont font;
+	
+	Stage stage;
 
 	@Override
 	public void create () {
@@ -39,6 +49,20 @@ public class MusicTest extends GdxTest {
 		buttons = new TextureRegion(new Texture(Gdx.files.internal("data/playback.png")));
 		batch = new SpriteBatch();
 		font = new BitmapFont(Gdx.files.internal("data/arial-15.fnt"), false);
+		
+		stage = new Stage();
+		Skin skin = new Skin(Gdx.files.internal("data/uiskin.json"));
+		final Slider slider = new Slider(0, 100, 0.1f, false, skin);
+		slider.setPosition(200, 20);
+		slider.addListener(new ChangeListener() {
+
+			@Override
+			public void changed (ChangeEvent event, Actor actor) {
+				music.setPosition((slider.getValue()/100f) * songDuration);
+			}});
+		stage.addActor(slider);
+		
+		Gdx.input.setInputProcessor(stage);
 	}
 
 	@Override
@@ -57,6 +81,9 @@ public class MusicTest extends GdxTest {
 		batch.begin();
 		batch.draw(buttons, 0, 0);
 		batch.end();
+		
+		stage.act();
+		stage.draw();
 
 		if (Gdx.input.justTouched()) {
 			if (Gdx.input.getY() > Gdx.graphics.getHeight() - 64) {
