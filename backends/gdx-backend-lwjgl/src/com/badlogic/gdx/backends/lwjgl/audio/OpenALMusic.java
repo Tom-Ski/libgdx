@@ -152,7 +152,17 @@ public abstract class OpenALMusic implements Music {
 	public void setPosition (float position) {
 		if (audio.noDevice) return;
 		if (sourceID == -1) return;
-		alSourcef(sourceID, AL11.AL_SEC_OFFSET, position);
+		pause();
+		if (position <= renderedSeconds){
+			reset();
+			renderedSeconds = 0;
+		}
+		while (renderedSeconds < position - secondsPerBuffer){
+			read(tempBytes);
+			renderedSeconds += secondsPerBuffer;
+		}
+		play();
+		alSourcef(sourceID, AL11.AL_SEC_OFFSET, position - renderedSeconds);
 	}
 	
 	public float getPosition () {
