@@ -31,15 +31,17 @@ import com.badlogic.gdx.scenes.scene2d.utils.ChangeListener;
 import com.badlogic.gdx.tests.utils.GdxTest;
 
 public class MusicTest extends GdxTest {
-	
+
 	Music music;
 	float songDuration = 183;
-	
+
 	TextureRegion buttons;
 	SpriteBatch batch;
 	BitmapFont font;
-	
+
 	Stage stage;
+	Slider slider;
+	boolean sliderUpdating = false;
 
 	@Override
 	public void create () {
@@ -49,19 +51,20 @@ public class MusicTest extends GdxTest {
 		buttons = new TextureRegion(new Texture(Gdx.files.internal("data/playback.png")));
 		batch = new SpriteBatch();
 		font = new BitmapFont(Gdx.files.internal("data/arial-15.fnt"), false);
-		
+
 		stage = new Stage();
 		Skin skin = new Skin(Gdx.files.internal("data/uiskin.json"));
-		final Slider slider = new Slider(0, 100, 0.1f, false, skin);
+		slider = new Slider(0, 100, 0.1f, false, skin);
 		slider.setPosition(200, 20);
 		slider.addListener(new ChangeListener() {
 
 			@Override
 			public void changed (ChangeEvent event, Actor actor) {
-				music.setPosition((slider.getValue()/100f) * songDuration);
-			}});
+				if (!sliderUpdating) music.setPosition((slider.getValue() / 100f) * songDuration);
+			}
+		});
 		stage.addActor(slider);
-		
+
 		Gdx.input.setInputProcessor(stage);
 	}
 
@@ -69,7 +72,7 @@ public class MusicTest extends GdxTest {
 	public void resize (int width, int height) {
 		batch.getProjectionMatrix().setToOrtho2D(0, 0, width, height);
 	}
-	
+
 	@Override
 	public void resume () {
 		System.out.println(Gdx.graphics.getDeltaTime());
@@ -81,7 +84,10 @@ public class MusicTest extends GdxTest {
 		batch.begin();
 		batch.draw(buttons, 0, 0);
 		batch.end();
-		
+
+		sliderUpdating = true;
+		slider.setValue((music.getPosition() / songDuration) * 100f);
+		sliderUpdating = false;
 		stage.act();
 		stage.draw();
 
