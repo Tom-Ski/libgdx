@@ -1,3 +1,5 @@
+import java.util.regex.Pattern
+
 apply plugin: "java"
 
 sourceCompatibility = 1.6
@@ -8,4 +10,14 @@ sourceSets.main.java.srcDirs = [ "src/" ]
 
 eclipse.project {
     name = appName + "-core"
+}
+
+task makeLocal(description: "Makes dependencies local", group: "IDE") {
+    doLast {
+        def classFile = file(".classpath")
+        def content = classFile.getText()
+        def pattern = Pattern.compile("path=\"(\\S*?)\\.cache", Pattern.DOTALL);
+        content = pattern.matcher(content).replaceAll("path=\"../.cache");
+        classFile.write(content)
+    }
 }

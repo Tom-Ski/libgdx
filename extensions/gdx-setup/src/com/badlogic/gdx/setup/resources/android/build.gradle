@@ -1,3 +1,5 @@
+import java.util.regex.Pattern
+
 android {
     buildToolsVersion "%BUILD_TOOLS_VERSION%"
     compileSdkVersion %API_LEVEL%
@@ -92,6 +94,17 @@ eclipse {
         buildCommand "com.android.ide.eclipse.adt.ApkBuilder"
     }
 }
+
+task makeLocal(description: "Makes dependencies local", group: "IDE") {
+    doLast {
+        def classFile = file(".classpath")
+        def content = classFile.getText()
+        def pattern = Pattern.compile("path=\"(\\S*?)\\.cache", Pattern.DOTALL);
+        content = pattern.matcher(content).replaceAll("path=\"../.cache");
+        classFile.write(content)
+    }
+}
+
 
 // sets up the Android Idea project, using the old Ant based build.
 idea {
