@@ -16,19 +16,19 @@
 
 package com.badlogic.gdx.setup;
 
-import org.w3c.dom.Document;
-import org.w3c.dom.Element;
-import org.w3c.dom.Node;
-import org.w3c.dom.NodeList;
-import org.xml.sax.SAXException;
+import static java.awt.GridBagConstraints.BOTH;
+import static java.awt.GridBagConstraints.CENTER;
+import static java.awt.GridBagConstraints.HORIZONTAL;
+import static java.awt.GridBagConstraints.NONE;
+import static java.awt.GridBagConstraints.NORTH;
+import static java.awt.GridBagConstraints.SOUTH;
+import static java.awt.GridBagConstraints.SOUTHEAST;
 
-import javax.swing.*;
-import javax.swing.table.DefaultTableModel;
-import javax.xml.parsers.DocumentBuilder;
-import javax.xml.parsers.DocumentBuilderFactory;
-import javax.xml.parsers.ParserConfigurationException;
-
-import java.awt.*;
+import java.awt.Color;
+import java.awt.Desktop;
+import java.awt.GridBagConstraints;
+import java.awt.GridBagLayout;
+import java.awt.Insets;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.MouseAdapter;
@@ -41,16 +41,36 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import static java.awt.GridBagConstraints.*;
+import javax.swing.BorderFactory;
+import javax.swing.JDialog;
+import javax.swing.JLabel;
+import javax.swing.JPanel;
+import javax.swing.JScrollPane;
+import javax.swing.JSeparator;
+import javax.swing.JTable;
+import javax.swing.event.TableModelEvent;
+import javax.swing.event.TableModelListener;
+import javax.swing.table.DefaultTableModel;
+import javax.xml.parsers.DocumentBuilder;
+import javax.xml.parsers.DocumentBuilderFactory;
+import javax.xml.parsers.ParserConfigurationException;
 
-public class ExternalExtensionsDialog extends JDialog {
+import org.w3c.dom.Document;
+import org.w3c.dom.Element;
+import org.w3c.dom.Node;
+import org.w3c.dom.NodeList;
+import org.xml.sax.SAXException;
+
+import com.badlogic.gdx.setup.GdxSetupUI.SetupButton;
+
+public class ExternalExtensionsDialog extends JDialog implements TableModelListener {
 
 	private JPanel contentPane;
-	private JButton buttonOK;
-	private JButton buttonCancel;
+	private SetupButton buttonOK;
+	private SetupButton buttonCancel;
 	private JPanel topPanel;
 	private ExtensionTableModel tableModel;
-	private JTable table;
+	JTable table;
 	private JPanel bottomPanel;
 	private JPanel buttonPanel;
 	private JScrollPane scrollPane;
@@ -59,7 +79,7 @@ public class ExternalExtensionsDialog extends JDialog {
 	private JLabel warningNotice2;
 
 	private List<Dependency> mainDependenciesSnapshot = new ArrayList<Dependency>();
-	private List<Dependency> mainDependencies;
+	List<Dependency> mainDependencies;
 
 	public ExternalExtensionsDialog (List<Dependency> mainDependencies) {
 		this.mainDependencies = mainDependencies;
@@ -128,24 +148,11 @@ public class ExternalExtensionsDialog extends JDialog {
 		table.setAutoResizeMode(JTable.AUTO_RESIZE_LAST_COLUMN);
 
 		table.getTableHeader().setReorderingAllowed(false);
+		table.getModel().addTableModelListener(this);
 		table.addMouseListener(new MouseAdapter() {
 			public void mouseClicked (MouseEvent e) {
 				int row = table.getSelectedRow();
 				int column = table.getSelectedColumn();
-
-				if (column == 0) {
-					ExternalExtension extension = ((ExtensionTableModel)table.getModel()).getExtension(row);
-					Dependency dep = extension.generateDependency();
-					boolean selected = (Boolean)table.getModel().getValueAt(row, 0);
-					if (selected) {
-						if (!mainDependencies.contains(dep)) {
-							mainDependencies.add(dep);
-						}
-					} else {
-						mainDependencies.remove(dep);
-					}
-				}
-
 				if (column == 5) {
 					URI uri = ((ExtensionTableModel)table.getModel()).getURI(row, column);
 					if (uri != null) {
@@ -165,8 +172,8 @@ public class ExternalExtensionsDialog extends JDialog {
 
 		buttonPanel = new JPanel(new GridBagLayout());
 		buttonPanel.setBorder(BorderFactory.createEmptyBorder(5, 5, 5, 5));
-		buttonOK = new JButton("Save");
-		buttonCancel = new JButton("Cancel");
+		buttonOK = new SetupButton("Save");
+		buttonCancel = new SetupButton("Cancel");
 		buttonPanel.add(buttonOK, new GridBagConstraints(0, 0, 1, 1, 0, 0, CENTER, HORIZONTAL, new Insets(0, 0, 0, 0), 0, 0));
 		buttonPanel.add(buttonCancel, new GridBagConstraints(1, 0, 1, 1, 0, 0, CENTER, HORIZONTAL, new Insets(0, 0, 0, 0), 0, 0));
 		bottomPanel.add(buttonPanel, new GridBagConstraints(3, 0, 1, 1, 1, 1, SOUTHEAST, NONE, new Insets(0, 0, 0, 0), 0, 0));
@@ -204,6 +211,13 @@ public class ExternalExtensionsDialog extends JDialog {
 				String compatibility = eElement.getElementsByTagName("compatibility").item(0).getTextContent();
 				String url = eElement.getElementsByTagName("website").item(0).getTextContent();
 
+				String[] gwtInherits = null;
+				NodeList inheritsNode = eElement.getElementsByTagName("inherit");
+				gwtInherits = new String[inheritsNode.getLength()];
+
+				for (int j = 0; j < inheritsNode.getLength(); j++)
+					gwtInherits[j] = inheritsNode.item(j).getTextContent();
+
 				final HashMap<String, List<String>> dependencies = new HashMap<String, List<String>>();
 
 				addToDependencyMapFromXML(dependencies, eElement, "core");
@@ -220,7 +234,7 @@ public class ExternalExtensionsDialog extends JDialog {
 				}
 
 				if (uri != null) {
-					final ExternalExtension extension = new ExternalExtension(name, description, version);
+					final ExternalExtension extension = new ExternalExtension(name, gwtInherits, description, version);
 					extension.setDependencies(dependencies);
 					tableModel.addExtension(extension, false, name, description, version, compatibility, uri);
 				}
@@ -244,8 +258,8 @@ public class ExternalExtensionsDialog extends JDialog {
 		scrollPane.setBackground(new Color(36, 36, 36));
 		scrollPane.getViewport().setBackground(new Color(36, 36, 36));
 
-		warningNotice.setForeground(new Color(200, 20, 20));
-		warningNotice2.setForeground(new Color(200, 20, 20));
+		warningNotice.setForeground(new Color(255, 20, 20));
+		warningNotice2.setForeground(new Color(255, 20, 20));
 	}
 
 	void onOK () {
@@ -383,6 +397,25 @@ public class ExternalExtensionsDialog extends JDialog {
 			extensions.put(rowCount++, extension);
 		}
 
+	}
+	
+	@Override
+	public void tableChanged (TableModelEvent e) {
+		int row = e.getFirstRow();
+		int column = e.getColumn();
+
+		if (column == 0) {
+			ExternalExtension extension = ((ExtensionTableModel)table.getModel()).getExtension(row);
+			Dependency dep = extension.generateDependency();
+			boolean selected = (Boolean)table.getModel().getValueAt(row, 0);
+			if (selected) {
+				if (!mainDependencies.contains(dep)) {
+					mainDependencies.add(dep);
+				}
+			} else {
+				mainDependencies.remove(dep);
+			}
+		}
 	}
 
 }

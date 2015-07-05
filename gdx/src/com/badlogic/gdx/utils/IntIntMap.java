@@ -50,6 +50,14 @@ public class IntIntMap implements Iterable<IntIntMap.Entry> {
 	private Values values1, values2;
 	private Keys keys1, keys2;
 
+	public static void main (String[] args) throws Exception {
+		ObjectIntMap m = new ObjectIntMap();
+		m.put("Asd", 10);
+		System.out.println(m.containsValue(10));
+		m.remove("Asd", 0);
+		System.out.println(m.containsValue(10));
+	}
+
 	/** Creates a new map with an initial capacity of 32 and a load factor of 0.8. This map will hold 25 items before growing the
 	 * backing table. */
 	public IntIntMap () {
@@ -445,9 +453,9 @@ public class IntIntMap implements Iterable<IntIntMap.Entry> {
 	 * an expensive operation. */
 	public boolean containsValue (int value) {
 		if (hasZeroValue && zeroValue == value) return true;
-		int[] valueTable = this.valueTable;
+		int[] keyTable = this.keyTable, valueTable = this.valueTable;
 		for (int i = capacity + stashSize; i-- > 0;)
-			if (valueTable[i] == value) return true;
+			if (keyTable[i] != 0 && valueTable[i] == value) return true;
 		return false;
 	}
 
@@ -475,9 +483,9 @@ public class IntIntMap implements Iterable<IntIntMap.Entry> {
 	 * every value, which may be an expensive operation. */
 	public int findKey (int value, int notFound) {
 		if (hasZeroValue && zeroValue == value) return 0;
-		int[] valueTable = this.valueTable;
+		int[] keyTable = this.keyTable, valueTable = this.valueTable;
 		for (int i = capacity + stashSize; i-- > 0;)
-			if (valueTable[i] == value) return keyTable[i];
+			if (keyTable[i] != 0 && valueTable[i] == value) return keyTable[i];
 		return notFound;
 	}
 
@@ -523,6 +531,48 @@ public class IntIntMap implements Iterable<IntIntMap.Entry> {
 	private int hash3 (int h) {
 		h *= PRIME3;
 		return (h ^ h >>> hashShift) & mask;
+	}
+
+	public int hashCode () {
+		int h = 0;
+		if (hasZeroValue) {
+			h += Float.floatToIntBits(zeroValue);
+		}
+		int[] keyTable = this.keyTable;
+		int[] valueTable = this.valueTable;
+		for (int i = 0, n = capacity + stashSize; i < n; i++) {
+			int key = keyTable[i];
+			if (key != EMPTY) {
+				h += key * 31;
+
+				int value = valueTable[i];
+				h += value;
+			}
+		}
+		return h;
+	}
+
+	public boolean equals (Object obj) {
+		if (obj == this) return true;
+		if (!(obj instanceof IntIntMap)) return false;
+		IntIntMap other = (IntIntMap)obj;
+		if (other.size != size) return false;
+		if (other.hasZeroValue != hasZeroValue) return false;
+		if (hasZeroValue && other.zeroValue != zeroValue) {
+			return false;
+		}
+		int[] keyTable = this.keyTable;
+		int[] valueTable = this.valueTable;
+		for (int i = 0, n = capacity + stashSize; i < n; i++) {
+			int key = keyTable[i];
+			if (key != EMPTY) {
+				int otherValue = other.get(key, 0);
+				if (otherValue == 0 && !other.containsKey(key)) return false;
+				int value = valueTable[i];
+				if (otherValue != value) return false;
+			}
+		}
+		return true;
 	}
 
 	public String toString () {
