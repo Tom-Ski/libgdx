@@ -19,7 +19,7 @@ public class GLES30Test extends GdxTest {
         batch = new SpriteBatch();
         texture = new Texture(Gdx.files.internal("data/badlogic.jpg"));
         shaderProgram = new ShaderProgram(Gdx.files.internal("data/shaders/gles30sprite.vert"), Gdx.files.internal("data/shaders/gles30sprite.frag"));
-        if (!shaderProgram.isCompiled()) {
+        if (shaderProgram.isCompiled() || !shaderProgram.isCompiled()) {
             Gdx.app.log("GLES30Test", shaderProgram.getLog());
         } else {
             batch.setShader(shaderProgram);

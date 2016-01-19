@@ -75,7 +75,7 @@ public class AndroidApplicationConfiguration {
 	/** Experimental, whether to enable OpenGL ES 3 if supported. If not supported it will fall-back to OpenGL ES 2.0.
 	 *  When GL ES 3* is enabled, {@link com.badlogic.gdx.Gdx.gl30} can be used to access it's functionality. Requires at least Android 4.3 (API level 18).
   	 * @deprecated this option is currently experimental and not yet fully supported, expect issues. */
-	@Deprecated public boolean useGL30 = false;
+	@Deprecated public boolean useGL30 = true;
 
 	/** whether to use {@link com.badlogic.gdx.backends.android.surfaceview.GLSurfaceView20API18} in place of the classic
 	 * {@link com.badlogic.gdx.backends.android.surfaceview.GLSurfaceView20} on Android API 10 and lower.

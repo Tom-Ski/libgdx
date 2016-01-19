@@ -167,6 +167,7 @@ public class GdxTests {
 		ModelCacheTest.class,
 		MoveSpriteExample.class,
 		MultitouchTest.class,
+		MultipleRenderTargetTest.class,
 		MusicTest.class,
 		NetAPITest.class,
 		NinePatchTest.class,

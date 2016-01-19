@@ -58,7 +58,7 @@ public class EdgeDetectionTest extends GdxTest {
 		/*
 		 * shader = new ShaderProgram(Gdx.files.internal("data/shaders/default.vert").readString(), Gdx.files.internal(
 		 * "data/shaders/depthtocolor.frag").readString()); if (!shader.isCompiled()) { Gdx.app.log("EdgeDetectionTest",
-		 * "couldn't compile scene shader: " + shader.getLog()); }
+		 * "couldn't compile sceneInstance shader: " + shader.getLog()); }
 		 */
 		batchShader = new ShaderProgram(Gdx.files.internal("data/shaders/batch.vert").readString(), Gdx.files.internal(
 			"data/shaders/convolution.frag").readString());
@@ -67,7 +67,7 @@ public class EdgeDetectionTest extends GdxTest {
 		}
 
 		ObjLoader objLoader = new ObjLoader();
-		scene = objLoader.loadModel(Gdx.files.internal("data/scene.obj"));
+		scene = objLoader.loadModel(Gdx.files.internal("data/sceneInstance.obj"));
 		sceneInstance = new ModelInstance(scene);
 		modelBatch = new ModelBatch();
 		fbo = new FrameBuffer(Format.RGB565, Gdx.graphics.getWidth(), Gdx.graphics.getHeight(), true);

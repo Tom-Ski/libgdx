@@ -101,7 +101,7 @@ public class ParallaxTest extends GdxTest {
 			camera.position.y = 0;
 			updateCamera = true;
 		}
-		// arbitrary height of scene
+		// arbitrary height of sceneInstance
 		if (camera.position.y > 400 - camera.viewportHeight / 2) {
 			camera.position.y = 400 - (int)(camera.viewportHeight / 2);
 			updateCamera = true;

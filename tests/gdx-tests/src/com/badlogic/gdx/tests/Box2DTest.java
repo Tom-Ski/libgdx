@@ -63,7 +63,7 @@ public class Box2DTest extends GdxTest implements InputProcessor {
 	/** box2d debug renderer **/
 	private Box2DDebugRenderer debugRenderer;
 
-	/** a spritebatch and a font for text rendering and a Texture to draw our boxes **/
+	/** a spritebatch and a font for text rendering and a Texture to draw our instances **/
 	private SpriteBatch batch;
 	private BitmapFont font;
 	private TextureRegion textureRegion;
@@ -71,7 +71,7 @@ public class Box2DTest extends GdxTest implements InputProcessor {
 	/** our box2D world **/
 	private World world;
 
-	/** our boxes **/
+	/** our instances **/
 	private ArrayList<Body> boxes = new ArrayList<Body>();
 
 	/** our ground box **/
@@ -198,7 +198,7 @@ public class Box2DTest extends GdxTest implements InputProcessor {
 	}
 
 	private void createBoxes () {
-		// next we create 50 boxes at random locations above the ground
+		// next we create 50 instances at random locations above the ground
 		// body. First we create a nice polygon representing a box 2 meters
 		// wide and high.
 		PolygonShape boxPoly = new PolygonShape();
@@ -218,7 +218,7 @@ public class Box2DTest extends GdxTest implements InputProcessor {
 
 			boxBody.createFixture(boxPoly, 1);
 
-			// add the box to our list of boxes
+			// add the box to our list of instances
 			boxes.add(boxBody);
 		}
 

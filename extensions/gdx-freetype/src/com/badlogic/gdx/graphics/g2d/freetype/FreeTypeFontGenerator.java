@@ -31,9 +31,9 @@ import com.badlogic.gdx.graphics.g2d.BitmapFont.BitmapFontData;
 import com.badlogic.gdx.graphics.g2d.BitmapFont.Glyph;
 import com.badlogic.gdx.graphics.g2d.GlyphLayout.GlyphRun;
 import com.badlogic.gdx.graphics.g2d.PixmapPacker;
-import com.badlogic.gdx.graphics.g2d.PixmapPacker.GuillotineStrategy;
-import com.badlogic.gdx.graphics.g2d.PixmapPacker.PackStrategy;
-import com.badlogic.gdx.graphics.g2d.PixmapPacker.SkylineStrategy;
+//import com.badlogic.gdx.graphics.g2d.PixmapPacker.GuillotineStrategy;
+//import com.badlogic.gdx.graphics.g2d.PixmapPacker.PackStrategy;
+//import com.badlogic.gdx.graphics.g2d.PixmapPacker.SkylineStrategy;
 import com.badlogic.gdx.graphics.g2d.TextureRegion;
 import com.badlogic.gdx.graphics.g2d.freetype.FreeType.Bitmap;
 import com.badlogic.gdx.graphics.g2d.freetype.FreeType.Face;
@@ -333,18 +333,18 @@ public class FreeTypeFontGenerator implements Disposable {
 		if (packer == null) {
 			// Create a packer.
 			int size;
-			PackStrategy packStrategy;
+		//	PackStrategy packStrategy;
 			if (incremental) {
 				size = maxTextureSize;
-				packStrategy = new GuillotineStrategy();
+			//	packStrategy = new GuillotineStrategy();
 			} else {
 				int maxGlyphHeight = (int)Math.ceil(data.lineHeight);
 				size = MathUtils.nextPowerOfTwo((int)Math.sqrt(maxGlyphHeight * maxGlyphHeight * charactersLength));
 				if (maxTextureSize > 0) size = Math.min(size, maxTextureSize);
-				packStrategy = new SkylineStrategy();
+			//	packStrategy = new SkylineStrategy();
 			}
 			ownsAtlas = true;
-			packer = new PixmapPacker(size, size, Format.RGBA8888, 1, false, packStrategy);
+			packer = new PixmapPacker(size, size, Format.RGBA8888, 1, false /**,packStrategy**/);
 		}
 
 		if (incremental) data.glyphs = new Array(charactersLength + 32);
