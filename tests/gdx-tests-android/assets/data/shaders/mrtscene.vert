@@ -1,5 +1,3 @@
-#version 300 es
-
 in vec4 a_position;
 in vec4 a_color;
 in vec2 a_texCoord0;

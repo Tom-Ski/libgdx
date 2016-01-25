@@ -17,20 +17,16 @@ package com.badlogic.gdx.tests;
 
 import com.badlogic.gdx.Application;
 import com.badlogic.gdx.Gdx;
+import com.badlogic.gdx.Input;
+import com.badlogic.gdx.InputMultiplexer;
 import com.badlogic.gdx.assets.AssetManager;
 import com.badlogic.gdx.graphics.*;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.graphics.g3d.*;
-import com.badlogic.gdx.graphics.g3d.attributes.ColorAttribute;
 import com.badlogic.gdx.graphics.g3d.attributes.TextureAttribute;
-import com.badlogic.gdx.graphics.g3d.environment.DirectionalLight;
-import com.badlogic.gdx.graphics.g3d.utils.DefaultTextureBinder;
-import com.badlogic.gdx.graphics.g3d.utils.FirstPersonCameraController;
-import com.badlogic.gdx.graphics.g3d.utils.ModelBuilder;
-import com.badlogic.gdx.graphics.g3d.utils.RenderContext;
+import com.badlogic.gdx.graphics.g3d.utils.*;
 import com.badlogic.gdx.graphics.glutils.GLOnlyTextureData;
 import com.badlogic.gdx.graphics.glutils.ShaderProgram;
-import com.badlogic.gdx.graphics.profiling.GLProfiler;
 import com.badlogic.gdx.math.MathUtils;
 import com.badlogic.gdx.math.Matrix3;
 import com.badlogic.gdx.math.Vector3;
@@ -44,6 +40,10 @@ import java.nio.IntBuffer;
 import java.util.HashMap;
 import java.util.Map;
 
+/** MRT test compliant with GLES 3.0, with per pixel lighting and normal and specular mapping.
+ * Thanks to http://www.blendswap.com/blends/view/73922 for the cannon model, licensed under CC-BY-SA
+ *
+/** @author Tomski */
 public class MultipleRenderTargetTest extends GdxTest {
 
 	RenderContext renderContext;
@@ -52,93 +52,125 @@ public class MultipleRenderTargetTest extends GdxTest {
 	PerspectiveCamera camera;
 	FirstPersonCameraController cameraController;
 
-	MRTShader mrtShader;
 	ShaderProgram mrtSceneShader;
 
 	SpriteBatch batch;
 	Mesh quad;
 
-	Environment environment;
+	ShaderProvider shaderProvider;
+	RenderableSorter renderableSorter;
 
-	ModelInstance lightInstance;
-
-	Array<ModelInstance> cannons = new Array<ModelInstance>();
+	ModelCache modelCache;
+	ModelInstance floorInstance;
+	ModelInstance cannon;
 	Array<Light> lights = new Array<Light>();
 	Array<Renderable> renderables = new Array<Renderable>();
-	Pool<Renderable> renerablePool = new Pool<Renderable>() {
-		@Override
-		protected Renderable newObject () {
-			return new Renderable();
-		}
-	};
-
-	Vector3 tempLightPos = new Vector3();
+	RenderablePool renerablePool = new RenderablePool();
 
 	static int DIFFUSE_ATTACHMENT = 0;
 	static int NORMAL_ATTACHMENT = 1;
 	static int POSITION_ATTACHMENT = 2;
 	static int DEPTH_ATTACHMENT = 3;
 
+
+	final int NUM_LIGHTS = 10;
+
 	@Override
 	public void create () {
+		//use default prepend shader code for batch, some gpu drivers are less forgiving
+		batch = new SpriteBatch();
 
-		ShaderProgram.pedantic = false;
+		ShaderProgram.pedantic = false;//depth texture not currently sampled
+
+		modelCache = new ModelCache();
+
+		ShaderProgram.prependVertexCode = Gdx.app.getType().equals(Application.ApplicationType.Desktop) ? "#version 140\n #extension GL_ARB_explicit_attrib_location : enable\n" : "#version 300 es\n";
+		ShaderProgram.prependFragmentCode = Gdx.app.getType().equals(Application.ApplicationType.Desktop) ? "#version 140\n #extension GL_ARB_explicit_attrib_location : enable\n" : "#version 300 es\n";
 
 		renderContext = new RenderContext(new DefaultTextureBinder(DefaultTextureBinder.ROUNDROBIN));
+		shaderProvider = new BaseShaderProvider() {
+			@Override
+			protected Shader createShader (Renderable renderable) {
+				return new MRTShader(renderable);
+			}
+		};
+		renderableSorter = new DefaultRenderableSorter() {
+			@Override
+			public int compare (Renderable o1, Renderable o2) {
+				return o1.shader.compareTo(o2.shader);
+			}
 
-		mrtShader = new MRTShader();
-		mrtShader.init();
+		};
+
 		mrtSceneShader = new ShaderProgram(Gdx.files.internal("data/shaders/mrtscene.vert"),
-			Gdx.files.internal("data/shaders/mrtscene.frag"));
+				Gdx.files.internal("data/shaders/mrtscene.frag"));
 		if (!mrtSceneShader.isCompiled()) {
 			System.out.println(mrtSceneShader.getLog());
 		}
 
-		batch = new SpriteBatch();
 		quad = createFullScreenQuad();
 
 		camera = new PerspectiveCamera(67, Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
 		camera.near = 1f;
 		camera.far = 100f;
-		camera.position.set(3, 6, 10);
-		camera.lookAt(0, 0, 0);
+		camera.position.set(3, 5, 10);
+		camera.lookAt(0, 2, 0);
 		camera.up.set(0, 1, 0);
 		camera.update();
 		cameraController = new FirstPersonCameraController(camera);
 		cameraController.setVelocity(50);
 		Gdx.input.setInputProcessor(cameraController);
 
-		environment = new Environment();
-		environment.set(ColorAttribute.createAmbient(0.2f, 0.2f, 0.2f, 0.5f));
-		environment.add(new DirectionalLight().set(1f, 0.8f, 0.5f, -0.2f, -0.8f, -0.2f));
-
 		frameBuffer = new MRTFrameBuffer(Gdx.graphics.getWidth(), Gdx.graphics.getHeight(), 3);
 
-		ModelBuilder builder = new ModelBuilder();
-		lightInstance = new ModelInstance(builder
-			.createSphere(1f, 1f, 1f, 10, 10, new Material(), VertexAttributes.Usage.Position | VertexAttributes.Usage.Normal));
-
 		AssetManager assetManager = new AssetManager();
-		assetManager.load("data/g3d/shapes/scene.g3db", Model.class);
+		assetManager.load("data/g3d/materials/cannon.g3db", Model.class);
 		assetManager.finishLoading();
 
-		Model scene = assetManager.get("data/g3d/shapes/scene.g3db");
+		Model scene = assetManager.get("data/g3d/materials/cannon.g3db");
 
-		for (int i = -2; i < 2; i++) {
-			for (int j = -2; j < 2; j++) {
-				ModelInstance cannon = new ModelInstance(scene, "Cannon_LP");
-				cannon.transform.setToTranslationAndScaling(i * 10f, 0, j * 10f, 0.001f, 0.001f, 0.001f);
-				cannons.add(cannon);
-			}
-		}
+		cannon = new ModelInstance(scene, "Cannon_LP");
+		cannon.transform.setToTranslationAndScaling(0, 0, 0, 0.001f, 0.001f, 0.001f);
 
-		for (int i = 0; i < 100; i++) {
+		ModelBuilder modelBuilder = new ModelBuilder();
+
+		for (int i = 0; i < NUM_LIGHTS; i++) {
+			modelBuilder.begin();
+
 			Light light = new Light();
 			light.color.set(MathUtils.random(1f), MathUtils.random(1f), MathUtils.random(1f));
-			light.position.set(MathUtils.random(-30f, 20f), MathUtils.random(10f, 15f), MathUtils.random(-30f, 20f));
+			light.position.set(MathUtils.random(-10f, 10f), MathUtils.random(10f, 15f), MathUtils.random(-10f, 10f));
+			light.vy = MathUtils.random(10f, 20f);
+			light.vx = MathUtils.random(-10f, 10f);
+			light.vz = MathUtils.random(-10f, 10f);
+
+			MeshPartBuilder meshPartBuilder = modelBuilder.part("light", GL20.GL_TRIANGLES, VertexAttributes.Usage.Position | VertexAttributes.Usage.ColorPacked | VertexAttributes.Usage.Normal, new Material());
+			meshPartBuilder.setColor(light.color.x, light.color.y, light.color.z, 1f);
+			meshPartBuilder.sphere(0.2f, 0.2f, 0.2f, 10, 10);
+
+			light.lightInstance = new ModelInstance(modelBuilder.end());
 			lights.add(light);
 		}
 
+		modelBuilder.begin();
+		MeshPartBuilder meshPartBuilder = modelBuilder.part("floor", GL20.GL_TRIANGLES, VertexAttributes.Usage.Position | VertexAttributes.Usage.ColorPacked | VertexAttributes.Usage.Normal, new Material());
+		meshPartBuilder.setColor(0.2f, 0.2f, 0.2f, 1f);
+		meshPartBuilder.box(0, -0.1f, 0f, 20f, 0.1f, 20f);
+		floorInstance = new ModelInstance(modelBuilder.end());
+
+		Gdx.input.setInputProcessor(new InputMultiplexer(this, cameraController));
+	}
+
+	@Override
+	public boolean keyDown (int keycode) {
+		if (keycode == Input.Keys.SPACE) {
+			for (Light light : lights) {
+				light.vy = MathUtils.random(10f, 20f);
+				light.vx = MathUtils.random(-10f, 10f);
+				light.vz = MathUtils.random(-10f, 10f);
+			}
+		}
+		return super.keyDown(keycode);
 	}
 
 	float track;
@@ -156,27 +188,37 @@ public class MultipleRenderTargetTest extends GdxTest {
 
 		frameBuffer.begin();
 		Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT | GL20.GL_DEPTH_BUFFER_BIT);
-		mrtShader.begin(camera, renderContext);
 
-		renerablePool.freeAll(renderables);
+		renerablePool.flush();
 		renderables.clear();
 
-		for (ModelInstance modelInstance : cannons) {
-			modelInstance.getRenderables(renderables, renerablePool);
-			for (Renderable renderable : renderables) {
-				mrtShader.render(renderable);
-			}
-		}
-
-		Renderable renderable = renerablePool.obtain();
+		modelCache.begin(camera);
+		modelCache.add(cannon);
+		modelCache.add(floorInstance);
 		for (Light light : lights) {
 			light.update(Gdx.graphics.getDeltaTime());
-			lightInstance.transform.setToTranslation(light.position);
-			mrtShader.render(lightInstance.getRenderable(renderable));
+			modelCache.add(light.lightInstance);
 		}
-		renerablePool.free(renderable);
+		modelCache.end();
+		modelCache.getRenderables(renderables, renerablePool);
 
-		mrtShader.end();
+		for (Renderable renderable : renderables) {
+			renderable.shader = shaderProvider.getShader(renderable);
+		}
+
+		renderableSorter.sort(camera, renderables);
+		Shader currentShader = null;
+		for (int i = 0; i < renderables.size; i++) {
+			final Renderable renderable = renderables.get(i);
+			if (currentShader != renderable.shader) {
+				if (currentShader != null) currentShader.end();
+				currentShader = renderable.shader;
+				currentShader.begin(camera, renderContext);
+			}
+			currentShader.render(renderable);
+		}
+		if (currentShader != null) currentShader.end();
+
 		frameBuffer.end();
 
 		mrtSceneShader.begin();
@@ -186,8 +228,7 @@ public class MultipleRenderTargetTest extends GdxTest {
 			renderContext.textureBinder.bind(frameBuffer.getColorBufferTexture(NORMAL_ATTACHMENT)));
 		mrtSceneShader.setUniformi("u_positionTexture",
 			renderContext.textureBinder.bind(frameBuffer.getColorBufferTexture(POSITION_ATTACHMENT)));
-		mrtSceneShader
-			.setUniformi("u_depthTexture", renderContext.textureBinder.bind(frameBuffer.getColorBufferTexture(DEPTH_ATTACHMENT)));
+		mrtSceneShader.setUniformi("u_depthTexture", renderContext.textureBinder.bind(frameBuffer.getColorBufferTexture(DEPTH_ATTACHMENT)));
 		for (int i = 0; i < lights.size; i++) {
 			Light light = lights.get(i);
 			mrtSceneShader.setUniformf("lights[" + i + "].lightPosition", light.position);
@@ -198,6 +239,8 @@ public class MultipleRenderTargetTest extends GdxTest {
 		mrtSceneShader.end();
 		renderContext.end();
 
+
+		batch.disableBlending();
 		batch.begin();
 		batch.draw(frameBuffer.getColorBufferTexture(DIFFUSE_ATTACHMENT), 0, 0, Gdx.graphics.getWidth() / 4f,
 			Gdx.graphics.getHeight() / 4f, 0f, 0f, 1f, 1f);
@@ -213,10 +256,12 @@ public class MultipleRenderTargetTest extends GdxTest {
 	@Override
 	public void dispose () {
 		frameBuffer.dispose();
-		mrtShader.dispose();
 		batch.dispose();
-		cannons.first().model.dispose();
-		lightInstance.model.dispose();
+		cannon.model.dispose();
+		floorInstance.model.dispose();
+		for (Light light : lights) {
+			light.lightInstance.model.dispose();
+		}
 		mrtSceneShader.dispose();
 		quad.dispose();
 	}
@@ -261,70 +306,93 @@ public class MultipleRenderTargetTest extends GdxTest {
 	static class Light {
 		Vector3 position = new Vector3();
 		Vector3 color = new Vector3();
+		ModelInstance lightInstance;
 
 		float vy;
+		float vx;
+		float vz;
 
 		public void update (float deltaTime) {
 			vy += -30f * deltaTime;
-			position.y += vy * deltaTime;
 
-			if (position.y < 1) {
+			position.y += vy * deltaTime;
+			position.x += vx * deltaTime;
+			position.z += vz * deltaTime;
+
+			if (position.y < 0.1f) {
 				vy *= -0.70f;
-				position.y = 1;
+				position.y = 0.1f;
+			}
+			if (position.x < -5) {
+				vx = -vx;
+				position.x = -5;
+			}
+			if (position.x > 5) {
+				vx = -vx;
+				position.x = 5;
+			}
+			if (position.z < -5) {
+				vz = -vz;
+				position.z = -5;
+			}
+			if (position.z > 5) {
+				vz = -vz;
+				position.z = 5;
 			}
 
+			lightInstance.transform.setToTranslation(position);
 		}
 	}
 
 	static class MRTShader implements Shader {
 
 		ShaderProgram shaderProgram;
-
-		int u_worldTrans;
-		int u_projViewTrans;
-		int u_normalMatrix;
-
-		int u_diffuseTexture;
-		int u_specularTexture;
-		int u_normalTexture;
+		long attributes;
 
 		RenderContext context;
 
 		Matrix3 matrix3 = new Matrix3();
+		static Attributes tmpAttributes = new Attributes();
 
-		@Override
-		public void init () {
+		public MRTShader (Renderable renderable) {
+			String prefix = "";
+			if (renderable.material.has(TextureAttribute.Normal)) {
+				prefix += "#define texturedFlag\n";
+			}
+
 			String vert = Gdx.files.internal("data/shaders/mrt.vert").readString();
 			String frag = Gdx.files.internal("data/shaders/mrt.frag").readString();
-
-			shaderProgram = new ShaderProgram(vert, frag);
+			shaderProgram = new ShaderProgram(prefix + vert, prefix + frag);
 			if (!shaderProgram.isCompiled()) {
 				throw new GdxRuntimeException(shaderProgram.getLog());
 			}
+			renderable.material.set(tmpAttributes);
+			attributes = tmpAttributes.getMask();
+		}
 
-			u_worldTrans = shaderProgram.getUniformLocation("u_worldTrans");
-			u_projViewTrans = shaderProgram.getUniformLocation("u_projViewTrans");
-			u_normalMatrix = shaderProgram.getUniformLocation("u_normalMatrix");
-			u_diffuseTexture = shaderProgram.getUniformLocation("u_diffuseTexture");
-			u_specularTexture = shaderProgram.getUniformLocation("u_specularTexture");
-			u_normalTexture = shaderProgram.getUniformLocation("u_normalTexture");
+		@Override
+		public void init () {
 		}
 
 		@Override
 		public int compareTo (Shader other) {
-			return 0;
+			//quick and dirty shader sort
+			if (((MRTShader) other).attributes == attributes) return 0;
+			if ((((MRTShader) other).attributes & TextureAttribute.Normal) == 1) return -1;
+			return 1;
+
 		}
 
 		@Override
 		public boolean canRender (Renderable instance) {
-			return false;
+			return attributes == instance.material.getMask();
 		}
 
 		@Override
 		public void begin (Camera camera, RenderContext context) {
 			this.context = context;
 			shaderProgram.begin();
-			shaderProgram.setUniformMatrix(u_projViewTrans, camera.combined);
+			shaderProgram.setUniformMatrix("u_projViewTrans", camera.combined);
 			context.setDepthTest(GL20.GL_LEQUAL);
 			context.setCullFace(GL20.GL_BACK);
 		}
@@ -338,17 +406,18 @@ public class MultipleRenderTargetTest extends GdxTest {
 			TextureAttribute specTexture = (TextureAttribute)material.get(TextureAttribute.Specular);
 
 			if (diffuseTexture != null) {
-				shaderProgram.setUniformi(u_diffuseTexture, context.textureBinder.bind(diffuseTexture.textureDescription.texture));
+				shaderProgram.setUniformi("u_diffuseTexture", context.textureBinder.bind(diffuseTexture.textureDescription.texture));
 			}
 			if (normalTexture != null) {
-				shaderProgram.setUniformi(u_normalTexture, context.textureBinder.bind(normalTexture.textureDescription.texture));
+				shaderProgram.setUniformi("u_normalTexture", context.textureBinder.bind(normalTexture.textureDescription.texture));
 			}
 			if (specTexture != null) {
-				shaderProgram.setUniformi(u_specularTexture, context.textureBinder.bind(specTexture.textureDescription.texture));
+				shaderProgram.setUniformi("u_specularTexture", context.textureBinder.bind(specTexture.textureDescription.texture));
 			}
 
-			shaderProgram.setUniformMatrix(u_worldTrans, renderable.worldTransform);
-			shaderProgram.setUniformMatrix(u_normalMatrix, matrix3.set(renderable.worldTransform).inv().transpose());
+			shaderProgram.setUniformMatrix("u_worldTrans", renderable.worldTransform);
+			shaderProgram.setUniformMatrix("u_normalMatrix", matrix3.set(renderable.worldTransform).inv().transpose());
+
 			renderable.meshPart.render(shaderProgram);
 		}
 
@@ -385,12 +454,9 @@ public class MultipleRenderTargetTest extends GdxTest {
 		/** height **/
 		private final int height;
 
-		private int numColorAttachments;
-
 		MRTFrameBuffer (int width, int height, int numColorAttachments) {
 			this.width = width;
 			this.height = height;
-			this.numColorAttachments = numColorAttachments;
 			build();
 
 			addManagedFrameBuffer(Gdx.app, this);
@@ -514,12 +580,6 @@ public class MultipleRenderTargetTest extends GdxTest {
 		/** Makes the frame buffer current so everything gets drawn to it. */
 		public void bind () {
 			Gdx.gl20.glBindFramebuffer(GL20.GL_FRAMEBUFFER, framebufferHandle);
-			IntBuffer buffer = BufferUtils.newIntBuffer(numColorAttachments);
-			buffer.put(GL30.GL_COLOR_ATTACHMENT0);
-			buffer.put(GL30.GL_COLOR_ATTACHMENT1);
-			buffer.put(GL30.GL_COLOR_ATTACHMENT2);
-			buffer.position(0);
-			Gdx.gl30.glDrawBuffers(numColorAttachments, buffer);
 		}
 
 		/** Unbinds the framebuffer, all drawing will be performed to the normal framebuffer from here on. */
@@ -593,6 +653,31 @@ public class MultipleRenderTargetTest extends GdxTest {
 
 		public static String getManagedStatus () {
 			return getManagedStatus(new StringBuilder()).toString();
+		}
+	}
+
+	protected static class RenderablePool extends Pool<Renderable> {
+		protected Array<Renderable> obtained = new Array<Renderable>();
+
+		@Override
+		protected Renderable newObject () {
+			return new Renderable();
+		}
+
+		@Override
+		public Renderable obtain () {
+			Renderable renderable = super.obtain();
+			renderable.environment = null;
+			renderable.material = null;
+			renderable.meshPart.set("", null, 0, 0, 0);
+			renderable.shader = null;
+			obtained.add(renderable);
+			return renderable;
+		}
+
+		public void flush () {
+			super.freeAll(obtained);
+			obtained.clear();
 		}
 	}
 

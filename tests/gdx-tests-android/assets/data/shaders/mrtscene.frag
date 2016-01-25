@@ -1,5 +1,3 @@
-#version 300 es
-
 precision mediump float;
 
 in vec4 v_color;
@@ -19,12 +17,12 @@ struct Light {
     vec3 lightColor;
 };
 
-const int NUM_LIGHTS = 100;
+const int NUM_LIGHTS = 10;
 uniform Light lights[NUM_LIGHTS];
 
 void main () {
     vec4 diffuse = texture(u_diffuseTexture, v_texCoords);
-    vec3 normal = normalize(2.0 * texture(u_normalTexture, v_texCoords).xyz - 1.0);
+    vec3 normal = normalize(texture(u_normalTexture, v_texCoords).xyz);
     vec3 position = texture(u_positionTexture, v_texCoords).xyz;
     float depth = texture(u_depthTexture, v_texCoords).x;
     float specular = diffuse.a;
@@ -43,13 +41,13 @@ void main () {
 
     //spot light
     for (int i = 0; i < NUM_LIGHTS; ++i) {
-        vec3 lightDir = lights[i].lightPosition - position.xyz;
+        vec3 lightDir = normalize(lights[i].lightPosition - position.xyz);
         float dist2 = dot(lightDir, lightDir);
         lightDir *= inversesqrt(dist2);
         float NdotL = clamp(dot(normal, lightDir), 0.0, 1.0);
 
         float distance = length(lights[i].lightPosition - position.xyz);
-        float fallOff = (0.001 * distance) + (0.08 * distance * distance);
+        float fallOff = (0.001 * distance) + (0.04 * distance * distance);
 
         vec3 value = lights[i].lightColor * (NdotL / (1.0 + fallOff));
 
