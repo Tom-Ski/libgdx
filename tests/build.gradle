@@ -28,4 +28,18 @@ configure(subprojects - project(":tests:gdx-tests-android")) {
 
 }
 
-
+task generateAssetIndex {
+    doFirst {
+        def assetsDir = "gdx-tests-android/assets/"
+        def output = new StringBuilder()
+        project.file(assetsDir).eachFileRecurse { file ->
+            if (file.name != "assets.index") {
+                def nameParsed = file.path.replaceAll("\\\\", "/")
+                output.append(nameParsed.split(assetsDir)[1])
+                if (file.isDirectory()) output.append("/")
+                output.append("\n")
+            }
+        }
+        project.file(assetsDir + "assets.index").setText(output.toString(), "UTF-8")
+    }
+}

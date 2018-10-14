@@ -19,6 +19,7 @@ package com.badlogic.gdx.files;
 import com.badlogic.gdx.Files;
 import com.badlogic.gdx.Files.FileType;
 import com.badlogic.gdx.Gdx;
+import com.badlogic.gdx.LifecycleListener;
 import com.badlogic.gdx.utils.Array;
 import com.badlogic.gdx.utils.GdxRuntimeException;
 import com.badlogic.gdx.utils.ObjectMap;
@@ -45,8 +46,6 @@ import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.nio.channels.FileChannel;
 import java.nio.channels.FileChannel.MapMode;
-import java.util.ArrayList;
-import java.util.List;
 
 /** Represents a file or directory on the filesystem, classpath, Android SD card, or Android assets directory. FileHandles are
  * created via a {@link Files} instance.
@@ -59,6 +58,8 @@ import java.util.List;
  * @author Nathan Sweet */
 public class FileHandle {
 	protected static ObjectMap<String, Array<String>> assetIndex = new ObjectMap<String, Array<String>>();
+	protected static boolean hasRunIndexLoad;
+	protected static boolean hasAssetIndex;
 	protected File file;
 	protected FileType type;
 
@@ -438,15 +439,12 @@ public class FileHandle {
 	 * @throws GdxRuntimeException if this file is an {@link FileType#Classpath} file.
 	 */
 	public FileHandle[] list () {
-		if (type == FileType.Classpath)
-			throw new GdxRuntimeException("Cannot list a classpath directory: " + file);
+		if (type == FileType.Classpath)	throw new GdxRuntimeException("Cannot list a classpath directory: " + file);
 		if (type == FileType.Internal) {
-			if (!Gdx.files.internal("assets.index").exists())
-				Gdx.app.log("FileHandle", "Asset index not found, listing content of internal directories will not be"
-					+ " possible. Check the documentation for more details.");
-			else {
-				if (assetIndex.size == 0)
-					loadAssetIndex();
+			if (!hasRunIndexLoad) {
+				loadAssetIndex();
+			}
+			if (hasAssetIndex) {
 				if (isDirectory()) {
 					Array<String> children = assetIndex.get(path());
 					if (children != null) {
@@ -460,11 +458,11 @@ public class FileHandle {
 			}
 		}
 		String[] relativePaths = file().list();
-		if (relativePaths == null)
-			return new FileHandle[0];
+		if (relativePaths == null) return new FileHandle[0];
 		FileHandle[] handles = new FileHandle[relativePaths.length];
-		for (int i = 0, n = relativePaths.length; i < n; i++)
+		for (int i = 0, n = relativePaths.length; i < n; i++) {
 			handles[i] = child(relativePaths[i]);
+		}
 		return handles;
 	}
 
@@ -560,10 +558,12 @@ public class FileHandle {
 		if (type == FileType.Classpath)
 			return false;
 		if (type == FileType.Internal) {
-			if (assetIndex.size == 0)
+			if (!hasRunIndexLoad) {
 				loadAssetIndex();
-			if (assetIndex.get(path()) != null)
-				return true;
+			}
+			if (hasAssetIndex) {
+				return assetIndex.get(path()) != null;
+			}
 		}
 		return file().isDirectory();
 	}
@@ -727,7 +727,27 @@ public class FileHandle {
 	}
 
 	public static void loadAssetIndex () {
-		String[] indexEntries = Gdx.files.internal("assets.index").readString("UTF-8").replace('\\', '/').split("\n");
+		hasRunIndexLoad = true;
+		if (!Gdx.files.internal("assets.index").exists()) {
+			Gdx.app.log("FileHandle", "Asset index not found, listing content of internal directories will not be"
+				+ " possible. Check the documentation for more details.");
+		} else {
+			hasAssetIndex = true;
+		}
+
+		Gdx.app.addLifecycleListener(new LifecycleListener() {
+			@Override
+			public void pause () {}
+			@Override
+			public void resume () {}
+			@Override
+			public void dispose () {
+				//Cleanup statics in case of big asset index
+				assetIndex.clear();
+			}
+		});
+
+		String[] indexEntries = Gdx.files.internal("assets.index").readString("UTF-8").split("\n");
 		int[] entryDepths = new int[indexEntries.length];
 		//Initializes an array of entry depths. The depth of indexEntries[i] is entryDepths[i]
 		for (int i = 0; i < indexEntries.length; i++) {
@@ -736,7 +756,7 @@ public class FileHandle {
 			if (!indexEntries[i].endsWith("/"))
 				entryDepths[i]++;
 		}
-		List<String> rootChildren = new ArrayList<String>();
+		Array<String> rootChildren = new Array<String>();
 		for (int i = 0; i < indexEntries.length; i++) {
 			//Check if the current entry is a root child (depth = 1), and add it to the list.
 			if (entryDepths[i] == 1) {
@@ -744,20 +764,18 @@ public class FileHandle {
 			}
 			//Otherwise check if it is a directory. If it is find its children (entries with depth entryDepths[i] + 1)
 			else if (indexEntries[i].endsWith("/")) {
-				List<String> children = new ArrayList<String>();
+				Array<String> children = new Array<String>();
 				//Finds all the children of the indexEntries[i] by checking depths and iterating over the list again.
 				for (int j = 0; j < indexEntries.length && entryDepths[j] == entryDepths[i] + 1; j++) {
 					children.add(indexEntries[j]);
 				}
-				String[] temp = new String[children.size()];
 				//the substring is to remove the trailing / since we don't need it anymore to tell if its a directory.
-				assetIndex.put(indexEntries[i].substring(0, indexEntries[i].length() - 1), new Array(children.toArray(temp)));
+				assetIndex.put(indexEntries[i].substring(0, indexEntries[i].length() - 1), children);
 			}
 		}
 		//Reference the root of the asset directory with "" or "/"
-		String[] temp = new String[rootChildren.size()];
-		assetIndex.put("", new Array(rootChildren.toArray(temp)));
-		assetIndex.put("/", new Array(rootChildren.toArray(temp)));
+		assetIndex.put("", rootChildren);
+		assetIndex.put("/", rootChildren);
 	}
 
 	static public FileHandle tempFile (String prefix) {
