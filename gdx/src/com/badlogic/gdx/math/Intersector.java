@@ -613,6 +613,7 @@ public final class Intersector {
 	static Vector3 tmp2 = new Vector3();
 	static Vector3 tmp3 = new Vector3();
 	static Vector2 v2tmp = new Vector2();
+	static Vector2 v2tmp2 = new Vector2();
 
 	/** Intersects the given ray with list of triangles. Returns the nearest intersection point in intersection
 	 * 
@@ -801,37 +802,80 @@ public final class Intersector {
 		return false;
 	}
 
-	/** Determines whether the given rectangle and segment intersect
+	/** Determines whether the given rectangle's edges and segment intersect. Returns the closest intersection point if there is an intersection
 	 * @param startX x-coordinate start of line segment
 	 * @param startY y-coordinate start of line segment
 	 * @param endX y-coordinate end of line segment
 	 * @param endY y-coordinate end of line segment
 	 * @param rectangle rectangle that is being tested for collision
+	 * @param closestIntersectionPoint closest intersection point if intersection occurs
 	 * @return whether the rectangle intersects with the line segment */
-	public static boolean intersectSegmentRectangle (float startX, float startY, float endX, float endY, Rectangle rectangle) {
+	public static boolean intersectSegmentRectangleEdges (float startX, float startY, float endX, float endY, Rectangle rectangle, Vector2 closestIntersectionPoint) {
 		float rectangleEndX = rectangle.x + rectangle.width;
 		float rectangleEndY = rectangle.y + rectangle.height;
 
-		if (intersectSegments(startX, startY, endX, endY, rectangle.x, rectangle.y, rectangle.x, rectangleEndY, null))
-		    return true;
+		Vector2 intersectionPoint1 = v2tmp;
+		Vector2 intersectionPoint2 = v2tmp2;
 
-		if (intersectSegments(startX, startY, endX, endY, rectangle.x, rectangle.y, rectangleEndX, rectangle.y, null))
-		    return true;
+		boolean hasIntersected = false;
+		boolean hasIntersectedTwice = false;
 
-		if (intersectSegments(startX, startY, endX, endY, rectangleEndX, rectangle.y, rectangleEndX, rectangleEndY, null))
+		if (intersectSegments(startX, startY, endX, endY, rectangle.x, rectangle.y, rectangle.x, rectangleEndY, intersectionPoint1)) {
+			hasIntersected = true;
+		}
+
+		if (intersectSegments(startX, startY, endX, endY, rectangle.x, rectangle.y, rectangleEndX, rectangle.y, hasIntersected ? intersectionPoint2 : intersectionPoint1)) {
+			if (hasIntersected) {
+				hasIntersectedTwice = true;
+			} else {
+				hasIntersected = true;
+			}
+		}
+
+		if (intersectSegments(startX, startY, endX, endY, rectangleEndX, rectangle.y, rectangleEndX, rectangleEndY, hasIntersected ? intersectionPoint2 : intersectionPoint1)) {
+			if (hasIntersected) {
+				hasIntersectedTwice = true;
+			} else {
+				hasIntersected = true;
+			}
+		}
+
+		if (intersectSegments(startX, startY, endX, endY, rectangle.x, rectangleEndY, rectangleEndX, rectangleEndY, hasIntersected ? intersectionPoint2 : intersectionPoint1)) {
+			if (hasIntersected) {
+				hasIntersectedTwice = true;
+			} else {
+				hasIntersected = true;
+			}
+		}
+
+		if (hasIntersectedTwice) {
+			if (closestIntersectionPoint != null) {
+				float distanceToFirst = closestIntersectionPoint.set(startX, startY).dst2(intersectionPoint1);
+				float distanceToSecond = closestIntersectionPoint.set(startX, startY).dst2(intersectionPoint2);
+
+				if (distanceToFirst < distanceToSecond) {
+					closestIntersectionPoint.set(intersectionPoint1);
+				} else {
+					closestIntersectionPoint.set(intersectionPoint2);
+				}
+			}
+
 			return true;
-
-		if (intersectSegments(startX, startY, endX, endY, rectangle.x, rectangleEndY, rectangleEndX, rectangleEndY, null))
+		} else if (hasIntersected) {
+			if (closestIntersectionPoint != null) {
+				closestIntersectionPoint.set(intersectionPoint1);
+			}
 			return true;
-
-		return rectangle.contains(startX, startY);
+		} else {
+			return false;
+		}
 	}
 
 	/**
-	 * {@link #intersectSegmentRectangle(float, float, float, float, Rectangle)}
+	 * {@link #intersectSegmentRectangleEdges(float, float, float, float, Rectangle, Vector2)}
 	 */
-	public static boolean intersectSegmentRectangle (Vector2 start, Vector2 end, Rectangle rectangle) {
-		return intersectSegmentRectangle(start.x, start.y, end.x, end.y, rectangle);
+	public static boolean intersectSegmentRectangleEdges (Vector2 start, Vector2 end, Rectangle rectangle, Vector2 closestIntersectionPoint) {
+		return intersectSegmentRectangleEdges(start.x, start.y, end.x, end.y, rectangle, closestIntersectionPoint);
 	}
 
 	/** Check whether the given line segment and {@link Polygon} intersect.
