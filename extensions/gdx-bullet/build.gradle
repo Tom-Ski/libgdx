@@ -66,24 +66,24 @@ jnigen {
 		]
 
 		// SWIG doesn't emit strict aliasing compliant code
-		cppFlags += " -fno-strict-aliasing";
+		cppFlags += ["-fno-strict-aliasing"]
 		// SWIG directors aren't clearly documented to require RTTI, but SWIG
 		// normally generates a small number of dynamic_casts for director code.
 		// gdx-bullet's swig build.xml replaces these with static C casts so we
 		// can compile without RTTI and save some disk space. It seems to work
 		// with these static casts.
-		cppFlags += " -fno-rtti";
+		cppFlags += ["-fno-rtti"]
 		// Disable profiling (it's on by default). If you change this, you
 		// must regenerate the SWIG wrappers with the changed value.
-		cppFlags += " -DBT_NO_PROFILE";
+		cppFlags += ["-DBT_NO_PROFILE"]
 		//Bullet 2 compatibility with inverse dynamics
-		cppFlags += " -DBT_USE_INVERSE_DYNAMICS_WITH_BULLET2";
+		cppFlags += ["-DBT_USE_INVERSE_DYNAMICS_WITH_BULLET2"]
 	}
 
     //Little hack to avoid duplicate builds. Only register MSVC on windows host
     //Other hosts will ignore MSVC and build with mingw
     if (HostDetection.os === Windows) {
-        addWindows(x64, ARM, MSVC)
+//        addWindows(x64, ARM, MSVC) bullet no likely atm
     } else {
         addWindows(x32, x86)
         addWindows(x64, x86)
@@ -96,7 +96,7 @@ jnigen {
 	addMac(x64, x86)
 	addMac(x64, ARM)
 	addAndroid() {
-		cppFlags += " -fexceptions"
+		cppFlags += ["-fexceptions"]
 		androidApplicationMk += ["APP_STL := c++_static"]
 		if (HostDetection.os == Os.Windows) {
 			androidAndroidMk += [
@@ -106,7 +106,7 @@ jnigen {
 		}
 	}
 	addIOS() {
-		cppFlags += " -stdlib=libc++";
+		cppFlags += ["-stdlib=libc++"]
 	}
 
 	robovm {

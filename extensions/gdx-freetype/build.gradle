@@ -83,10 +83,10 @@ jnigen {
 
 		cppExcludes = ["jni/freetype/subprojects/"]
 
-		cFlags += " -DFT2_BUILD_LIBRARY "
-		cFlags += System.getenv("CC_FLAGS") ?: ""
-		cppFlags += " -DFT2_BUILD_LIBRARY "
-		cppFlags += System.getenv("CPP_FLAGS") ?: ""
+		cFlags += ["-DFT2_BUILD_LIBRARY"]
+		cFlags += [System.getenv("CC_FLAGS") ?: ""]
+		cppFlags += ["-DFT2_BUILD_LIBRARY"]
+		cppFlags += [System.getenv("CPP_FLAGS") ?: ""]
 	}
 
     //Little hack to avoid duplicate builds. Only register MSVC on windows host
@@ -102,10 +102,10 @@ jnigen {
 	addLinux(x64, ARM)
 	addLinux(x64, RISCV)
 	addMac(x64, x86) {
-		linkerFlags += " -framework CoreServices -framework Carbon"
+		linkerFlags += ["-framework", "CoreServices", "-framework", "Carbon"]
 	}
 	addMac(x64, ARM) {
-		linkerFlags += " -framework CoreServices -framework Carbon"
+		linkerFlags += ["-framework", "CoreServices", "-framework", "Carbon"]
 	}
 	addAndroid()
 	addIOS()
