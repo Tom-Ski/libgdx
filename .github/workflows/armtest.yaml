@@ -1,4 +1,4 @@
-name: Build Workflow
+name: Armtest
 on:
   push:
     branches: [ jnigen-3.0 ]
