@@ -88,9 +88,8 @@ jnigen {
 		cppFlags += " -DFT2_BUILD_LIBRARY "
 		cppFlags += System.getenv("CPP_FLAGS") ?: ""
 	}
-	addWindows(x32, x86)
-	addWindows(x64, x86)
-        //Little hack to avoid duplicate builds. Only register MSVC on windows host
+
+    //Little hack to avoid duplicate builds. Only register MSVC on windows host
     //Other hosts will ignore MSVC and build with mingw
     if (HostDetection.os === Windows) {
         addWindows(x64, ARM, MSVC)
