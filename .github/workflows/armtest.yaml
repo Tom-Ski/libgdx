@@ -3,28 +3,28 @@ on:
   push:
     branches: [ jnigen-3.0 ]
 jobs:
-  build-linux:
-    runs-on: ubuntu-20.04
+  natives-linux:
+    runs-on: ubuntu-22.04
     steps:
-      - name: Install cross-compilation toolchains
-        run: |
-          sudo apt update
-          sudo apt install -y --force-yes gcc g++
-          sudo apt install -y --force-yes gcc-aarch64-linux-gnu g++-aarch64-linux-gnu libc6-dev-arm64-cross
-          sudo apt install -y --force-yes gcc-arm-linux-gnueabihf g++-arm-linux-gnueabihf libc6-dev-armhf-cross
-          sudo apt install -y --force-yes gcc-riscv64-linux-gnu g++-riscv64-linux-gnu libc6-dev-riscv64-cross
-          sudo apt install -y --force-yes mingw-w64 lib32z1
+      - uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
+          submodules: 'recursive'
 
-      - name: Download Android NDK
-        run: |
-          mkdir -p $HOME/android-ndk
-          cd $HOME/android-ndk
-          wget https://dl.google.com/android/repository/android-ndk-r25c-linux.zip -O android-ndk.zip
-          echo "769ee342ea75f80619d985c2da990c48b3d8eaf45f48783a2d48870d04b46108  android-ndk.zip" | sha256sum --check
-          unzip android-ndk.zip
-          echo "NDK_HOME=$HOME/android-ndk/android-ndk-r25c" >> $GITHUB_ENV
+      - name: Build Linux Natives in Docker Container
+        uses: ./.github/actions/build-linux-natives
+        id: docker
 
-      - uses: actions/checkout@v4
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: natives-linux.zip
+          path: natives-linux.zip
+
+  natives-windows-cross:
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v2
         with:
           fetch-depth: 0
           submodules: 'recursive'
@@ -35,24 +35,71 @@ jobs:
           distribution: 'zulu'
           java-version: '17'
 
+      - name: Setup Gradle
+        uses: gradle/gradle-build-action@v2
 
-      - name: Initialize jnigen
-        run: ./gradlew jnigen
-      - name: Build natives 
-        run: ./gradlew jnigenBuildAllWindows jnigenBuildAllLinux jnigenBuildAllAndroid
+      - name: Install cross-compilation toolchains
+        run: |
+          sudo apt update
+          sudo apt install -y --force-yes mingw-w64 lib32z1
 
+      - name: Build Windows natives
+        run: |
+          ./gradlew jniGen jnigenBuildAllWindows 
 
       - name: Pack artifacts
         run: |
           find .  -name "*.a" -o -name "*.dll" -o -name "*.dylib" -o -name "*.so" | grep "libs" > native-files-list
-          zip natives-linux -@ < native-files-list
+          zip natives-windows-cross -@ < native-files-list
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: natives-linux.zip
-          path: natives-linux.zip
-  build-mac:
+          name: natives-windows-cross.zip
+          path: natives-windows-cross.zip
+
+
+  natives-android:
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
+          submodules: 'recursive'
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v3
+        with:
+          distribution: 'zulu'
+          java-version: '17'
+
+      - name: Setup Gradle
+        uses: gradle/gradle-build-action@v2
+
+      - name: Download NDK
+        run: |
+          wget https://dl.google.com/android/repository/android-ndk-r25c-linux.zip -O android-ndk.zip
+          echo "769ee342ea75f80619d985c2da990c48b3d8eaf45f48783a2d48870d04b46108  android-ndk.zip" | sha256sum --check
+          unzip android-ndk.zip
+          echo "NDK_HOME=$(pwd)/android-ndk-r25c" >> $GITHUB_ENV
+
+      - name: Build Android natives
+        run: |
+          ./gradlew jniGen jnigenBuildAndroid
+
+      - name: Pack artifacts
+        run: |
+          find .  -name "*.a" -o -name "*.dll" -o -name "*.dylib" -o -name "*.so" | grep "libs" > native-files-list
+          zip natives-android -@ < native-files-list
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: natives-android.zip
+          path: natives-android.zip
+
+
+  natives-mac:
     runs-on: macos-14
     steps:
       - name: Setup Xcode SDK
@@ -91,7 +138,8 @@ jobs:
         with:
           name: natives-mac.zip
           path: natives-mac.zip
-  build-windows:
+
+  natives-windows-msvc:
     runs-on: windows-latest
     steps:
       - name: Add VCVarsall To path
@@ -124,18 +172,18 @@ jobs:
         shell: bash
         run: |
           find .  -name "*.a" -o -name "*.dll" -o -name "*.dylib" -o -name "*.so" | grep "libs" > native-files-list
-          zip natives-windows -@ < native-files-list
+          zip natives-windows-msvc -@ < native-files-list
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: natives-windows.zip
-          path: natives-windows.zip
+          name: natives-windows-msvc.zip
+          path: natives-windows-msvc.zip
 
 
   package:
     runs-on: ubuntu-latest
-    needs: [build-linux, build-mac, build-windows]
+    needs: [natives-android, natives-linux, natives-mac, natives-windows-cross, natives-windows-msvc]
     steps:
       - uses: actions/checkout@v4
         with:
@@ -149,29 +197,44 @@ jobs:
           java-version: '17'
 
       - name: Download Artifacts from linux
-        if: success() && needs.build-linux.result == 'success'
+        if: success() && needs.natives-linux.result == 'success'
         uses: actions/download-artifact@v4
         with:
           name: natives-linux.zip
-
       - name: Unzip artifacts
         run: unzip -o natives-linux.zip
+
+      - name: Download Artifacts from android
+        if: success() && needs.natives-android.result == 'success'
+        uses: actions/download-artifact@v4
+        with:
+          name: natives-android.zip
+      - name: Unzip artifacts
+        run: unzip -o natives-android.zip
+
       - name: Download Artifacts from mac
-        if: success() && needs.build-mac.result == 'success'
+        if: success() && needs.natives-mac.result == 'success'
         uses: actions/download-artifact@v4
         with:
           name: natives-mac.zip
-
       - name: Unzip artifacts
         run: unzip -o natives-mac.zip
-      - name: Download Artifacts from windows
-        if: success() && needs.build-windows.result == 'success'
+
+      - name: Download Artifacts from windows cross
+        if: success() && needs.natives-windows-cross.result == 'success'
         uses: actions/download-artifact@v4
         with:
-          name: natives-windows.zip
-
+          name: natives-windows-cross.zip
       - name: Unzip artifacts
-        run: unzip -o natives-windows.zip
+        run: unzip -o natives-windows-cross.zip
+
+      - name: Download Artifacts from windows msvc
+        if: success() && needs.natives-windows-msvc.result == 'success'
+        uses: actions/download-artifact@v4
+        with:
+          name: natives-windows-msvc.zip
+      - name: Unzip artifacts
+        run: unzip -o natives-windows-msvc.zip
 
 
       - name: Package All
