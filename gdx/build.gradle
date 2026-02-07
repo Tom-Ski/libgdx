@@ -129,7 +129,7 @@ jnigen {
 	addLinux(x64, ARM)
 	addLinux(x64, RISCV)
 	addAndroid() {
-		linkerFlags += " -llog"
+		linkerFlags += ["-llog"]
 	}
 	addMac(x64, x86)
 	addMac(x64, ARM)
