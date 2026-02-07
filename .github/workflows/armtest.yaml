@@ -45,7 +45,7 @@ jobs:
 
       - name: Build Windows natives
         run: |
-          ./gradlew jniGen jnigenBuildAllWindows 
+          ./gradlew jniGen jnigenBuildAllWindows --info 
 
       - name: Pack artifacts
         run: |
