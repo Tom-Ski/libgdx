@@ -68,44 +68,58 @@ jnigen {
 			"jni/freetype/src/raster/raster.c",
 			"jni/freetype/src/smooth/smooth.c",
 			// AUX
-            "jni/freetype/src/autofit/autofit.c",
-            "jni/freetype/src/cache/ftcache.c",
-            "jni/freetype/src/gzip/ftgzip.c",
-            "jni/freetype/src/lzw/ftlzw.c",
-            "jni/freetype/src/bzip2/ftbzip2.c",
-            "jni/freetype/src/gxvalid/gxvalid.c",
-            "jni/freetype/src/otvalid/otvalid.c",
-            "jni/freetype/src/psaux/psaux.c",
-            "jni/freetype/src/pshinter/pshinter.c",
-            "jni/freetype/src/psnames/psnames.c",
-            "jni/freetype/src/svg/svg.c",
+			"jni/freetype/src/autofit/autofit.c",
+			"jni/freetype/src/cache/ftcache.c",
+			"jni/freetype/src/gzip/ftgzip.c",
+			"jni/freetype/src/lzw/ftlzw.c",
+			"jni/freetype/src/bzip2/ftbzip2.c",
+			"jni/freetype/src/gxvalid/gxvalid.c",
+			"jni/freetype/src/otvalid/otvalid.c",
+			"jni/freetype/src/psaux/psaux.c",
+			"jni/freetype/src/pshinter/pshinter.c",
+			"jni/freetype/src/psnames/psnames.c",
+			"jni/freetype/src/svg/svg.c",
 		]
 
 		cppExcludes = ["jni/freetype/subprojects/"]
 
 		cFlags += ["-DFT2_BUILD_LIBRARY"]
-		cFlags += [System.getenv("CC_FLAGS") ?: ""]
+		cFlags += [
+			System.getenv("CC_FLAGS") ?: ""
+		]
 		cppFlags += ["-DFT2_BUILD_LIBRARY"]
-		cppFlags += [System.getenv("CPP_FLAGS") ?: ""]
+		cppFlags += [
+			System.getenv("CPP_FLAGS") ?: ""
+		]
 	}
 
-    //Little hack to avoid duplicate builds. Only register MSVC on windows host
-    //Other hosts will ignore MSVC and build with mingw
-    if (HostDetection.os === Windows) {
-        addWindows(x64, ARM, MSVC)
-    } else {
-        addWindows(x32, x86)
-        addWindows(x64, x86)
-    }
-    addLinux(x64, x86)
+	//Little hack to avoid duplicate builds. Only register MSVC on windows host
+	//Other hosts will ignore MSVC and build with mingw
+	if (HostDetection.os === Windows) {
+		addWindows(x64, ARM, MSVC)
+	} else {
+		addWindows(x32, x86)
+		addWindows(x64, x86)
+	}
+	addLinux(x64, x86)
 	addLinux(x32, ARM)
 	addLinux(x64, ARM)
 	addLinux(x64, RISCV)
 	addMac(x64, x86) {
-		linkerFlags += ["-framework", "CoreServices", "-framework", "Carbon"]
+		linkerFlags += [
+			"-framework",
+			"CoreServices",
+			"-framework",
+			"Carbon"
+		]
 	}
 	addMac(x64, ARM) {
-		linkerFlags += ["-framework", "CoreServices", "-framework", "Carbon"]
+		linkerFlags += [
+			"-framework",
+			"CoreServices",
+			"-framework",
+			"Carbon"
+		]
 	}
 	addAndroid()
 	addIOS()

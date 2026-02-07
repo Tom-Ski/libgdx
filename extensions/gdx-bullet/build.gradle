@@ -77,17 +77,19 @@ jnigen {
 		// must regenerate the SWIG wrappers with the changed value.
 		cppFlags += ["-DBT_NO_PROFILE"]
 		//Bullet 2 compatibility with inverse dynamics
-		cppFlags += ["-DBT_USE_INVERSE_DYNAMICS_WITH_BULLET2"]
+		cppFlags += [
+			"-DBT_USE_INVERSE_DYNAMICS_WITH_BULLET2"
+		]
 	}
 
-    //Little hack to avoid duplicate builds. Only register MSVC on windows host
-    //Other hosts will ignore MSVC and build with mingw
-    if (HostDetection.os === Windows) {
-//        addWindows(x64, ARM, MSVC) bullet no likely atm
-    } else {
-        addWindows(x32, x86)
-        addWindows(x64, x86)
-    }
+	//Little hack to avoid duplicate builds. Only register MSVC on windows host
+	//Other hosts will ignore MSVC and build with mingw
+	if (HostDetection.os === Windows) {
+		//        addWindows(x64, ARM, MSVC) bullet no likely atm
+	} else {
+		addWindows(x32, x86)
+		addWindows(x64, x86)
+	}
 
 	addLinux(x64, x86)
 	addLinux(x32, ARM)
