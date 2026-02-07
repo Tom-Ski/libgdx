@@ -142,7 +142,7 @@ jnigen {
 		]
 	}
 	robovm {
-		extraXCFramework("libs/ObjectAL.xcframework")
+		extraXCFramework("libs/ios32/ObjectAL.xcframework")
 	}
 }
 
