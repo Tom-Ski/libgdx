@@ -23,7 +23,7 @@ dependencies {
 apply plugin: "com.badlogicgames.jnigen.jnigen-gradle"
 jnigen {
 	sharedLibName = "gdx-freetype"
-	multiThreadedCompile =false
+	multiThreadedCompile = true
 
 	all {
 		headerDirs = ["jni/freetype/include/"]
@@ -84,13 +84,13 @@ jnigen {
 		cppExcludes = ["jni/freetype/subprojects/"]
 
 		cFlags += ["-DFT2_BUILD_LIBRARY"]
-        if (System.getenv("CC_FLAGS") != null) {
-            cFlags += [System.getenv("CC_FLAGS")]
-        }
+		if (System.getenv("CC_FLAGS") != null) {
+			cFlags += [System.getenv("CC_FLAGS")]
+		}
 		cppFlags += ["-DFT2_BUILD_LIBRARY"]
-        if (System.getenv("CPP_FLAGS") != null) {
-            cppFlags += [System.getenv("CPP_FLAGS")]
-        }
+		if (System.getenv("CPP_FLAGS") != null) {
+			cppFlags += [System.getenv("CPP_FLAGS")]
+		}
 	}
 
 	//Little hack to avoid duplicate builds. Only register MSVC on windows host
