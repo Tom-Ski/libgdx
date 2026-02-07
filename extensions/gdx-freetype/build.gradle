@@ -66,16 +66,17 @@ jnigen {
 			"jni/freetype/src/raster/raster.c",
 			"jni/freetype/src/smooth/smooth.c",
 			// AUX
-			"jni/freetype/src/autofit/autofit.c",
-			"jni/freetype/src/cache/ftcache.c",
-			"jni/freetype/src/gzip/ftgzip.c",
-			"jni/freetype/src/lzw/ftlzw.c",
-			"jni/freetype/src/bzip2/ftbzip2.c",
-			"jni/freetype/src/gxvalid/gxvalid.c",
-			"jni/freetype/src/otvalid/otvalid.c",
-			"jni/freetype/src/psaux/psaux.c",
-			"jni/freetype/src/pshinter/pshinter.c",
-			"jni/freetype/src/psnames/psnames.c"
+            "jni/freetype/src/autofit/autofit.c",
+            "jni/freetype/src/cache/ftcache.c",
+            "jni/freetype/src/gzip/ftgzip.c",
+            "jni/freetype/src/lzw/ftlzw.c",
+            "jni/freetype/src/bzip2/ftbzip2.c",
+            "jni/freetype/src/gxvalid/gxvalid.c",
+            "jni/freetype/src/otvalid/otvalid.c",
+            "jni/freetype/src/psaux/psaux.c",
+            "jni/freetype/src/pshinter/pshinter.c",
+            "jni/freetype/src/psnames/psnames.c",
+            "jni/freetype/src/svg/svg.c",
 		]
 
 		cppExcludes = ["jni/freetype/subprojects/"]

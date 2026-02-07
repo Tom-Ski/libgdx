@@ -56,6 +56,17 @@ public class StandardKeyboardHeightProvider extends PopupWindow implements Keybo
 	/** The root activity that uses this KeyboardHeightProvider */
 	private Activity activity;
 
+	/** The cached visible value of the keyboard */
+	private static boolean cachedVisible;
+	/** The cached inset to the left */
+	private static int cachedInsetLeft;
+	/** The cached inset to the right */
+	private static int cachedInsetRight;
+	/** The cached inset to the bottom */
+	private static int cachedBottomInset;
+	/** The cached orientation of the app */
+	private static int cachedOrientation;
+
 	/** Construct a new KeyboardHeightProvider
 	 *
 	 * @param activity The parent activity */
@@ -73,8 +84,6 @@ public class StandardKeyboardHeightProvider extends PopupWindow implements Keybo
 
 		setSoftInputMode(LayoutParams.SOFT_INPUT_ADJUST_RESIZE | LayoutParams.SOFT_INPUT_STATE_ALWAYS_VISIBLE);
 		setInputMethodMode(PopupWindow.INPUT_METHOD_NEEDED);
-
-		parentView = activity.findViewById(android.R.id.content);
 
 		setWidth(0);
 		setHeight(android.view.ViewGroup.LayoutParams.MATCH_PARENT);
@@ -94,7 +103,7 @@ public class StandardKeyboardHeightProvider extends PopupWindow implements Keybo
 	 * be registered before the onResume has finished of the Activity. */
 	@Override
 	public void start () {
-
+		parentView = activity.findViewById(android.R.id.content);
 		if (!isShowing() && parentView.getWindowToken() != null) {
 			setBackgroundDrawable(new ColorDrawable(0));
 			showAtLocation(parentView, Gravity.NO_GRAVITY, 0, 0);
@@ -140,26 +149,28 @@ public class StandardKeyboardHeightProvider extends PopupWindow implements Keybo
 		int orientation = getScreenOrientation();
 		int keyboardHeight = screenSize.y - rect.bottom;
 		int leftInset = rect.left;
-		int rightInset = Math.abs(screenSize.x - rect.right + rect.left);
+		int rightInset = Math.abs(screenSize.x - rect.right);
 
-		if (keyboardHeight == 0) {
-			notifyKeyboardHeightChanged(0, leftInset, rightInset, orientation);
-		} else if (orientation == Configuration.ORIENTATION_PORTRAIT) {
-			keyboardPortraitHeight = keyboardHeight;
-			notifyKeyboardHeightChanged(keyboardPortraitHeight, leftInset, rightInset, orientation);
-		} else {
-			keyboardLandscapeHeight = keyboardHeight;
-			notifyKeyboardHeightChanged(keyboardLandscapeHeight, leftInset, rightInset, orientation);
+		if (keyboardHeight > 0) {
+			if (orientation == Configuration.ORIENTATION_PORTRAIT) {
+				keyboardPortraitHeight = keyboardHeight;
+			} else {
+				keyboardLandscapeHeight = keyboardHeight;
+			}
 		}
-	}
 
-	/**
-	 *
-	 */
-	private void notifyKeyboardHeightChanged (int height, int leftInset, int rightInset, int orientation) {
-		if (observer != null) {
-			observer.onKeyboardHeightChanged(height, leftInset, rightInset, orientation);
-		}
+		boolean isVisible = keyboardHeight > 0 || (keyboardLandscapeHeight == 0 && keyboardPortraitHeight == 0);
+
+		if (isVisible == cachedVisible && keyboardHeight == cachedBottomInset && leftInset == cachedInsetLeft
+			&& rightInset == cachedInsetRight && orientation == cachedOrientation) return;
+
+		cachedVisible = isVisible;
+		cachedBottomInset = keyboardHeight;
+		cachedInsetLeft = leftInset;
+		cachedInsetRight = rightInset;
+		cachedOrientation = orientation;
+
+		if (observer != null) observer.onKeyboardHeightChanged(isVisible, keyboardHeight, leftInset, rightInset, orientation);
 	}
 
 	@Override

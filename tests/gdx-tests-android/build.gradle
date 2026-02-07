@@ -54,17 +54,13 @@ apply from: "obb.gradle"
 dependencies {
 	implementation project(":tests:gdx-tests")
 	implementation project(":backends:gdx-backend-android")
-	implementation "androidx.multidex:multidex:${versions.multiDex}"
-
-	implementation project(path: ":gdx", configuration: "archives")
-	implementation project(path: ":extensions:gdx-box2d-parent:gdx-box2d", configuration: "archives")
-	implementation project(path: ":extensions:gdx-bullet", configuration: "archives")
-	implementation project(path: ":extensions:gdx-freetype", configuration: "archives")
+	implementation libraries.compileOnly.android
+	// Fix Duplicate class kotlin.collections.jdk8.CollectionsJDK8Kt found in modules kotlin-stdlib-X.X.X.jar
+	implementation(platform("org.jetbrains.kotlin:kotlin-bom:${versions.kotlinBomTests}"))
 }
 
 android {
 	namespace "com.badlogic.gdx.tests.android"
-	buildToolsVersion versions.androidBuildTools
 	compileSdkVersion versions.androidCompileSdk
 	sourceSets {
 		main {

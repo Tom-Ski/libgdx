@@ -25,7 +25,8 @@ buildscript {
 	}
 	dependencies {
 		classpath "com.diffplug.spotless:spotless-plugin-gradle:${versions.spotless}"
-		classpath "com.badlogicgames.jnigen:jnigen-gradle:3.0.0-SNAPSHOT"
+		classpath "com.badlogicgames.jnigen:jnigen-gradle:3.1.4-SNAPSHOT"
+		classpath 'org.jreleaser:jreleaser-gradle-plugin:1.18.0'
 	}
 }
 
@@ -40,14 +41,9 @@ ext {
 		return project.hasProperty("RELEASE")
 	}
 
-	getReleaseRepositoryUrl = {
-		return project.hasProperty('RELEASE_REPOSITORY_URL') ? RELEASE_REPOSITORY_URL
-				: "https://oss.sonatype.org/service/local/staging/deploy/maven2/"
-	}
-
 	getSnapshotRepositoryUrl = {
 		return project.hasProperty('SNAPSHOT_REPOSITORY_URL') ? SNAPSHOT_REPOSITORY_URL
-				: "https://oss.sonatype.org/content/repositories/snapshots/"
+				: "https://central.sonatype.com/repository/maven-snapshots/"
 	}
 
 	getRepositoryUsername = {
@@ -71,9 +67,10 @@ allprojects {
 			gradlePluginPortal()
 			maven { url "https://oss.sonatype.org/content/repositories/snapshots/" }
 			maven { url "https://oss.sonatype.org/content/repositories/releases/" }
+			maven { url "https://central.sonatype.com/repository/maven-snapshots/" }
 		}
 		dependencies {
-			classpath "com.badlogicgames.jnigen:jnigen-gradle:3.0.0-SNAPSHOT"
+			classpath "com.badlogicgames.jnigen:jnigen-gradle:3.1.4-SNAPSHOT"
 		}
 	}
 
@@ -84,6 +81,7 @@ allprojects {
 		gradlePluginPortal()
 		maven { url "https://oss.sonatype.org/content/repositories/snapshots/" }
 		maven { url "https://oss.sonatype.org/content/repositories/releases/" }
+		maven { url "https://central.sonatype.com/repository/maven-snapshots/" }
 	}
 
 	tasks.withType(JavaCompile) {
