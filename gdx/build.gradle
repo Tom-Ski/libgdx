@@ -1,3 +1,5 @@
+import com.badlogic.gdx.jnigen.commons.HostDetection
+
 /*******************************************************************************
  * Copyright 2011 See AUTHORS file.
  *
@@ -111,9 +113,17 @@ jnigen {
 		cIncludes = ["jni/gdx2d/*.c"]
 		cppIncludes = ["jni/etc1/*.cpp"]
 	}
-	addWindows(x32, x86)
-	addWindows(x64, x86)
-    addWindows(x64, ARM, MSVC)
+
+    //Little hack to avoid duplicate builds. Only register MSVC on windows host
+    //Other hosts will ignore MSVC and build with mingw
+    if (HostDetection.os === Windows) {
+        addWindows(x64, ARM, MSVC)
+    } else {
+        addWindows(x32, x86)
+        addWindows(x64, x86)
+    }
+
+
 	addLinux(x64, x86)
 	addLinux(x32, ARM)
 	addLinux(x64, ARM)
@@ -126,7 +136,7 @@ jnigen {
 	addIOS() {
 		headerDirs += ["jni/iosgl"]
 		cppIncludes = ["jni/iosgl/*.cpp"]
-		linkerFlags += " -undefined dynamic_lookup "
+		linkerFlags += ["-undefined", "dynamic_lookup"]
 	}
 	robovm {
 		extraXCFramework("libs/ObjectAL.xcframework")
