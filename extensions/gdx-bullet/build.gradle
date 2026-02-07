@@ -39,7 +39,7 @@ dependencies {
 apply plugin: "com.badlogicgames.jnigen.jnigen-gradle"
 jnigen {
 	sharedLibName = "gdx-bullet"
-	multiThreadedCompile = true
+	multiThreadedCompile = false
 
 
 	nativeCodeGenerator {

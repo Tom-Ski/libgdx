@@ -85,7 +85,7 @@ jobs:
 
       - name: Build Android natives
         run: |
-          ./gradlew jniGen jnigenBuildAndroid
+          ./gradlew jniGen jnigenBuildAllAndroid 
 
       - name: Pack artifacts
         run: |
