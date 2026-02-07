@@ -88,7 +88,8 @@ jnigen {
 	}
 	addWindows(x32, x86)
 	addWindows(x64, x86)
-	addLinux(x64, x86)
+    addWindows(x64, ARM, MSVC)
+    addLinux(x64, x86)
 	addLinux(x32, ARM)
 	addLinux(x64, ARM)
 	addLinux(x64, RISCV)

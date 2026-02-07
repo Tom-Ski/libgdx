@@ -85,7 +85,7 @@ task validateIOSHeader {
 
 dependencies {
 	testImplementation libraries.junit
-	api "com.badlogicgames.jnigen:jnigen-loader:3.0.0-SNAPSHOT"
+	api "com.badlogicgames.jnigen:jnigen-loader:3.1.2-SNAPSHOT"
 }
 
 test {
@@ -113,6 +113,7 @@ jnigen {
 	}
 	addWindows(x32, x86)
 	addWindows(x64, x86)
+    addWindows(x64, ARM, MSVC)
 	addLinux(x64, x86)
 	addLinux(x32, ARM)
 	addLinux(x64, ARM)
