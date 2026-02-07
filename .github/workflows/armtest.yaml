@@ -126,7 +126,9 @@ jobs:
       - name: Initialize jnigen
         run: ./gradlew jnigen
       - name: Build natives 
-        run: ./gradlew jnigenBuildAllIOS jnigenBuildAllMacOsX
+        run: |
+          ./gradlew jnigenBuildAllIOS jnigenBuildAllMacOsX
+          ./backends/gdx-backend-robovm/build-objectal.sh
 
       - name: Pack artifacts
         run: |
