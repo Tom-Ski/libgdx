@@ -57,7 +57,7 @@ ext {
 }
 
 allprojects {
-	group = project.getProperty("group") || "com.badlogicgames.gdx"
+	group = project.getProperty("group") ? project.getProperty("group") : "com.badlogicgames.gdx"
 	version = project.getProperty('version') + (isReleaseBuild() ? "" : "-SNAPSHOT")
 
 	buildscript {
