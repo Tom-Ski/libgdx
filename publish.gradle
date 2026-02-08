@@ -50,7 +50,13 @@ configure([
                         }
                     }
                     register("mavenJava", MavenPublication) {
-                        from(components["java"])
+                        if(components.findByName("java") != null)
+                            from components.java
+
+                        //Android
+                        if(components.findByName("release") != null) {
+                            from components.release
+                        }
 
                         versionMapping {
                             usage("java-api") {
