@@ -26,7 +26,6 @@ import com.badlogic.gdx.Application;
 import com.badlogic.gdx.graphics.glutils.GLVersion;
 import com.badlogic.gdx.jnigen.commons.HostDetection;
 import com.badlogic.gdx.jnigen.commons.Os;
-import com.badlogic.gdx.jnigen.loader.SharedLibraryLoader;
 import org.lwjgl.LWJGLException;
 import org.lwjgl.input.Mouse;
 import org.lwjgl.opengl.ContextAttribs;
