@@ -206,7 +206,7 @@ tasks.register('fetchExternalNatives', Copy) {
 
 tasks.register('fetchGdxNativesZIP', Download) {
 	dependsOn fetchExternalNatives
-    src "https://libgdx-nightlies.s3.eu-central-1.amazonaws.com/libgdx-nightlies/natives.zip"
+	src "https://libgdx-nightlies.s3.eu-central-1.amazonaws.com/libgdx-nightlies/natives.zip"
 	dest "build/natives.zip"
 	onlyIfModified true
 	useETag "all"
