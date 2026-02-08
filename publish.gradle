@@ -23,7 +23,7 @@ configure([
 		afterEvaluate {
 			publishing {
 				publications {
-                    withType(MavenPublication::class) {
+                    withType(MavenPublication) {
                         pom {
                             name = POM_NAME
                             if(!POM_DESCRIPTION.isEmpty())
@@ -49,7 +49,7 @@ configure([
                             }
                         }
                     }
-                    register("mavenJava", MavenPublication::class) {
+                    register("mavenJava", MavenPublication) {
                         from(components["java"])
 
                         versionMapping {
@@ -80,12 +80,10 @@ configure([
 				}
 			}
 
+            def publishing = extensions.getByType(PublishingExtension)
 			signing {
 				useGpgCmd()
-				sign publishing.publications.mavenJava
-
-				if(project.tasks.findByName('jnigen'))
-					sign publishing.publications.mavenPlatform
+				sign publishing.publications
 			}
 
 			//Simply using "required" in signing block doesn't work because taskGraph isn't ready yet.
