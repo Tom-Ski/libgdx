@@ -243,7 +243,7 @@ jobs:
 
 
       - name: Package All
-        run: ./gradlew jnigenPackageAll
+        run: ./gradlew jnigenPackageAll --info -Ppackaging
 
       - name: Publish
         run: ./gradlew publish
